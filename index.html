@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuickBuy — Simple Product Store</title>
+  <meta name="description" content="Simple responsive product store demo with cart, product modal and search." />
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4; --glass: rgba(255,255,255,0.03);
+      --max-width:1200px; --radius:12px;
+      --shadow: 0 6px 20px rgba(2,6,23,0.6);
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#071127 0%, #08121a 60%); color:#e6eef6; -webkit-font-smoothing:antialiased;
+    }
+    .container{max-width:var(--max-width); margin:28px auto; padding:0 20px}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:48px; height:48px; display:grid; place-items:center; border-radius:10px; background:linear-gradient(135deg,var(--accent), #7c3aed); font-weight:700}
+    .brand h1{font-size:18px; margin:0}
+    nav{display:flex; gap:14px; align-items:center}
+    nav a{color:var(--muted); text-decoration:none; font-weight:500}
+    nav a.active,
+    nav a:focus{color:#fff; text-decoration:underline;}
+    nav a:hover{color:#fff}
+    .controls{display:flex; gap:12px; align-items:center}
+    .search{background:var(--glass); border:1px solid rgba(255,255,255,0.03); padding:8px 12px; border-radius:10px; display:flex; gap:8px; align-items:center}
+    .search input{background:transparent; border:0; outline:none; color:inherit; min-width:200px}
+    .cart-btn{position:relative; background:linear-gradient(90deg,#0ea5a6,#7c3aed); border:none; padding:8px 12px; border-radius:10px; cursor:pointer}
+    .cart-count{position:absolute; top:-6px; right:-6px; background:#ff4d6d; color:white; font-size:12px; padding:3px 6px; border-radius:999px}
+    .hero{display:flex; justify-content:space-between; gap:20px; align-items:center; margin:26px 0}
+    .hero .left h2{margin:0 0 8px 0; font-size:28px}
+    .hero .left p{color:var(--muted); margin:0}
+    .hero .right img{width:160px; height:160px; object-fit:cover; border-radius:14px; box-shadow:var(--shadow)}
+    .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px; margin:18px 0 40px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px; border-radius:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px}
+    .card img{width:100%; height:160px; object-fit:cover; border-radius:10px}
+    .card .meta{display:flex; justify-content:space-between; align-items:center}
+    .price{font-weight:700}
+    .desc{color:var(--muted); font-size:13px}
+    .card button{background:var(--accent); border:none; padding:8px 10px; border-radius:10px; cursor:pointer}
+    .admin-list{margin-top:28px;}
+    .admin-list-item{display:flex; gap:18px; align-items:center; background:rgba(255,255,255,0.04); padding:10px; border-radius:8px; margin-bottom:10px;}
+    .admin-list-item img{width:56px; height:56px; object-fit:cover; border-radius:8px;}
+    .admin-remove-btn{background:#ff4d6d; color:#fff; border:none; padding:6px 12px; border-radius:7px; cursor:pointer; margin-left:12px;}
+    .admin-remove-btn:hover{background:#c61f3a;}
+    .cart-drawer{position:fixed; right:20px; top:20px; width:360px; max-width:calc(100% - 40px); background:linear-gradient(180deg,#071c29,#061420); border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,0.7); transform:translateX(110%); transition:transform .28s cubic-bezier(.2,.9,.3,1); z-index:1200; padding:18px}
+    .cart-drawer.open{transform:translateX(0)}
+    .cart-drawer h3{margin:0 0 12px 0}
+    .cart-item{display:flex; gap:12px; align-items:center; margin-bottom:12px}
+    .cart-item img{width:64px; height:64px; object-fit:cover; border-radius:8px}
+    .qty{display:flex; gap:6px; align-items:center}
+    .qty button{padding:6px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); background:transparent; cursor:pointer}
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; place-items:center; z-index:1300}
+    .modal-backdrop.open{display:grid}
+    .modal{background:#071328; padding:18px; border-radius:12px; width:min(880px,95%); display:grid; grid-template-columns:1fr 1fr; gap:14px}
+    .modal img{width:100%; height:320px; object-fit:cover; border-radius:10px}
+    footer{margin:40px 0 80px; color:var(--muted); font-size:14px}
+    @media (max-width:720px){
+      .hero{flex-direction:column; align-items:flex-start}
+      .modal{grid-template-columns:1fr}
+      .search input{min-width:80px}
+      .cart-drawer{width:92%; right:4%; left:4%}
+    }
+    /* Hide sections by default */
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">QB</div>
+        <div>
+          <h1>QuickBuy</h1>
+          <div style="font-size:12px;color:var(--muted)">Handpicked products • Simple checkout</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#" class="tablink active" data-tab="home">Home</a>
+        <a href="#products" class="tablink" data-tab="products">Products</a>
+        <a href="#about" class="tablink" data-tab="about">About</a>
+        <a href="#admin" class="tablink" data-tab="admin">Admin</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="controls">
+        <div class="search" role="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input id="searchInput" placeholder="Search products..." />
+        </div>
+        <button class="cart-btn" id="openCart" aria-label="Open cart">
+          Cart
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
+    </header>
+    <section class="hero tab-section active" id="tab-home">
+      <div class="left">
+        <h2>Quality goods, fast delivery</h2>
+        <p>Browse our curated catalogue. Click a product to see details and add to your cart.</p>
+      </div>
+      <div class="right">
+        <img src="https://picsum.photos/seed/hero/400/400" alt="hero product" />
+      </div>
+    </section>
+    <main>
+      <section id="tab-products" class="tab-section">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Products</h2>
+          <div style="color:var(--muted);font-size:13px">Showing <span id="visibleCount">0</span> items</div>
+        </div>
+        <div class="grid" id="productGrid" aria-live="polite"></div>
+      </section>
+      <section id="tab-about" class="tab-section">
+        <h3>About QuickBuy</h3>
+        <p class="desc">This is a demo product store built with plain HTML, CSS and vanilla JavaScript. It's responsive and accessible for basic usage. Use it as a starting point for a real store by connecting a backend or e-commerce platform.</p>
+      </section>
+      <section id="tab-admin" class="tab-section">
+        <section style="margin:30px 0; padding:20px; background:rgba(255,255,255,0.02); border-radius:12px;">
+          <h3>Add New Product (Admin Demo)</h3>
+          <form id="adminForm">
+            <input type="text" id="adminTitle" placeholder="Product Title" required />
+            <input type="number" id="adminPrice" placeholder="Price (₹)" required />
+            <input type="text" id="adminCategory" placeholder="Category" required />
+            <input type="url" id="adminImg" placeholder="Image URL" required />
+            <input type="text" id="adminDesc" placeholder="Description" required />
+            <button type="submit">Add Product</button>
+          </form>
+          <div class="admin-list" id="adminProductList"></div>
+        </section>
+      </section>
+    </main>
+    <footer>
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>© <span id="year"></span> QuickBuy • Built with ❤️</div>
+        <div>Support: <a href="mailto:help@quickbuy.example" style="color:var(--muted)">help@quickbuy.example</a></div>
+      </div>
+    </footer>
+  </div>
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+    <h3>Your cart</h3>
+    <div id="cartItems"></div>
+    <div style="border-top:1px dashed rgba(255,255,255,0.04); padding-top:12px; margin-top:12px; display:flex; justify-content:space-between; align-items:center">
+      <div>
+        <div style="color:var(--muted); font-size:13px">Total</div>
+        <div id="cartTotal" style="font-weight:800; font-size:18px">₹0.00</div>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button id="checkoutBtn" style="padding:10px 14px; border-radius:10px; border:none; background:linear-gradient(90deg,#06b6d4,#7c3aed); cursor:pointer">Checkout</button>
+        <button id="closeCart" style="padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:transparent; cursor:pointer">Close</button>
+      </div>
+    </div>
+  </aside>
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div>
+        <img id="modalImg" src="" alt="product image" />
+      </div>
+      <div>
+        <h3 id="modalTitle"></h3>
+        <div style="color:var(--muted); margin-bottom:8px" id="modalCategory"></div>
+        <div style="font-weight:800; font-size:20px; margin-bottom:10px" id="modalPrice"></div>
+        <p id="modalDesc" style="color:var(--muted); margin-bottom:14px"></p>
+        <div style="display:flex; gap:8px">
+          <button id="modalAdd" style="padding:10px 12px; border-radius:10px; border:none; background:linear-gradient(90deg,#06b6d4,#7c3aed); cursor:pointer">Add to cart</button>
+          <button id="modalClose" style="padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:transparent; cursor:pointer">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // TAB SWITCHING LOGIC
+    document.querySelectorAll('.tablink').forEach(link => {
+      link.addEventListener('click', function(e){
+        if(this.dataset.tab){
+          e.preventDefault();
+          // Remove active from all nav links
+          document.querySelectorAll('.tablink').forEach(a=>a.classList.remove('active'));
+          this.classList.add('active');
+          // Hide all tab sections
+          document.querySelectorAll('.tab-section').forEach(sec=>sec.classList.remove('active'));
+          // Show the selected tab
+          const tabId = 'tab-' + this.dataset.tab;
+          const tabSection = document.getElementById(tabId);
+          if(tabSection) tabSection.classList.add('active');
+          // Focus for accessibility
+          tabSection?.focus && tabSection.focus();
+        }
+      });
+    });
+
+    // PRODUCTS / ADMIN LOGIC AS BEFORE
+    const PRODUCTS = [
+      {
+        id: 1,
+        title: 'Elegant Pearl Earrings',
+        price: 1299,
+        category: 'Jewelry',
+        img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',
+        desc: 'Classic freshwater pearl earrings for any occasion.'
+      },
+      {
+        id: 2,
+        title: 'Gold Plated Necklace',
+        price: 1999,
+        category: 'Jewelry',
+        img: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&w=600&q=80',
+        desc: 'Delicate gold plated necklace with minimalist pendant.'
+      },
+      {
+        id: 3,
+        title: 'Crystal Drop Earrings',
+        price: 899,
+        category: 'Jewelry',
+        img: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+        desc: 'Sparkling crystal earrings perfect for evening wear.'
+      },
+      {
+        id: 4,
+        title: 'Sterling Silver Chain',
+        price: 1599,
+        category: 'Jewelry',
+        img: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80',
+        desc: 'Simple sterling silver chain, ideal for daily use.'
+      }
+    ];
+    const state = { products: PRODUCTS.slice(), cart: {} };
+    const productGrid = document.getElementById('productGrid');
+    const visibleCount = document.getElementById('visibleCount');
+    const cartCount = document.getElementById('cartCount');
+    const cartDrawer = document.getElementById('cartDrawer');
+    const cartItems = document.getElementById('cartItems');
+    const cartTotal = document.getElementById('cartTotal');
+    const openCart = document.getElementById('openCart');
+    const closeCart = document.getElementById('closeCart');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const searchInput = document.getElementById('searchInput');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalImg = document.getElementById('modalImg');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalCategory = document.getElementById('modalCategory');
+    const modalPrice = document.getElementById('modalPrice');
+    const modalDesc = document.getElementById('modalDesc');
+    const modalAdd = document.getElementById('modalAdd');
+    const modalClose = document.getElementById('modalClose');
+    const adminProductList = document.getElementById('adminProductList');
+    let activeProduct = null;
+
+    function formatCurrency(n){ return '₹' + n.toFixed(2); }
+
+    function renderProducts(list){
+      productGrid.innerHTML = '';
+      list.forEach(p => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${p.img}" alt="${p.title}" loading="lazy" />
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${p.title}</strong>
+              <div class="price">${formatCurrency(p.price)}</div>
+            </div>
+            <div class="desc">${p.category}</div>
+          </div>
+          <div style="margin-top:auto; display:flex; gap:8px">
+            <button data-id="${p.id}" class="viewBtn">View</button>
+            <button data-id="${p.id}" class="addBtn">Add</button>
+          </div>
+        `;
+        productGrid.appendChild(card);
+      });
+      visibleCount.textContent = list.length;
+      attachProductButtons();
+    }
+
+    function attachProductButtons(){
+      document.querySelectorAll('.viewBtn').forEach(b => b.addEventListener('click', (e)=>{
+        const id = Number(e.currentTarget.dataset.id);
+        openModal(id);
+      }));
+      document.querySelectorAll('.addBtn').forEach(b => b.addEventListener('click', (e)=>{
+        const id = Number(e.currentTarget.dataset.id);
+        addToCart(id, 1);
+      }));
+    }
+
+    // Admin: render list with remove
+    function renderAdminProductList(list){
+      adminProductList.innerHTML = '';
+      if(list.length === 0){
+        adminProductList.innerHTML = '<p style="color:var(--muted)">No products available.</p>';
+        return;
+      }
+      list.forEach(p=>{
+        const item = document.createElement('div');
+        item.className = 'admin-list-item';
+        item.innerHTML = `
+          <img src="${p.img}" alt="${p.title}" />
+          <div style="flex:1">
+            <div style="font-weight:700">${p.title}</div>
+            <div style="color:var(--muted);font-size:13px">${p.category}</div>
+            <div style="font-size:14px;margin-top:2px;">${formatCurrency(p.price)}</div>
+          </div>
+          <button class="admin-remove-btn" data-id="${p.id}" title="Remove this product">Remove</button>
+        `;
+        adminProductList.appendChild(item);
+      });
+      // Attach remove event
+      document.querySelectorAll('.admin-remove-btn').forEach(btn=>{
+        btn.onclick = function(){
+          const id = Number(btn.dataset.id);
+          const idx = state.products.findIndex(p=>p.id===id);
+          if(idx !== -1){
+            if(confirm('Are you sure you want to remove this product?')){
+              state.products.splice(idx,1);
+              renderProducts(state.products);
+              renderAdminProductList(state.products);
+            }
+          }
+        };
+      });
+    }
+
+    // Modal
+    function openModal(id){
+      const p = state.products.find(x=>x.id===id);
+      if(!p) return;
+      activeProduct = p;
+      modalImg.src = p.img;
+      modalTitle.textContent = p.title;
+      modalCategory.textContent = p.category;
+      modalPrice.textContent = formatCurrency(p.price);
+      modalDesc.textContent = p.desc;
+      modalBackdrop.classList.add('open');
+      modalBackdrop.setAttribute('aria-hidden','false');
+    }
+    function closeModal(){ modalBackdrop.classList.remove('open'); modalBackdrop.setAttribute('aria-hidden','true'); activeProduct = null; }
+    modalClose.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) closeModal(); });
+    modalAdd.addEventListener('click', ()=>{ if(activeProduct) addToCart(activeProduct.id,1); closeModal(); });
+
+    // Cart logic
+    function saveCart(){ localStorage.setItem('quickbuy_cart', JSON.stringify(state.cart)); }
+    function loadCart(){ const raw = localStorage.getItem('quickbuy_cart'); if(raw) state.cart = JSON.parse(raw); }
+    function addToCart(productId, qty=1){
+      const id = String(productId);
+      if(!state.cart[id]) state.cart[id] = 0;
+      state.cart[id] += qty;
+      renderCart();
+      saveCart();
+      flashCart();
+    }
+    function removeFromCart(productId){ const id = String(productId); delete state.cart[id]; renderCart(); saveCart(); }
+    function changeQty(productId, delta){ const id = String(productId); if(!state.cart[id]) return; state.cart[id] += delta; if(state.cart[id] <= 0) delete state.cart[id]; renderCart(); saveCart(); }
+
+    function renderCart(){
+      cartItems.innerHTML = '';
+      let total = 0; let items = 0;
+      for(const [id,qty] of Object.entries(state.cart)){
+        const p = state.products.find(x=>String(x.id)===id);
+        if(!p) continue;
+        items += qty;
+        total += p.price * qty;
+        const el = document.createElement('div');
+        el.className = 'cart-item';
+        el.innerHTML = `
+          <img src="${p.img}" alt="${p.title}" />
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between"><strong>${p.title}</strong><div>${formatCurrency(p.price*qty)}</div></div>
+            <div style="color:var(--muted); font-size:13px">${p.category}</div>
+            <div style="margin-top:8px; display:flex; gap:8px; align-items:center">
+              <div class="qty">
+                <button data-id="${id}" class="dec">−</button>
+                <div style="padding:6px 10px; border-radius:8px; background:rgba(0,0,0,0.2);">${qty}</div>
+                <button data-id="${id}" class="inc">+</button>
+              </div>
+              <button data-id="${id}" class="remove" style="margin-left:8px; border:none; background:transparent; color:var(--muted); cursor:pointer">Remove</button>
+            </div>
+          </div>
+        `;
+        cartItems.appendChild(el);
+      }
+      cartCount.textContent = items;
+      cartTotal.textContent = formatCurrency(total);
+      document.querySelectorAll('.inc').forEach(b=>b.addEventListener('click', e=>changeQty(e.currentTarget.dataset.id, 1)));
+      document.querySelectorAll('.dec').forEach(b=>b.addEventListener('click', e=>changeQty(e.currentTarget.dataset.id, -1)));
+      document.querySelectorAll('.remove').forEach(b=>b.addEventListener('click', e=>removeFromCart(e.currentTarget.dataset.id)));
+    }
+    function flashCart(){ cartDrawer.classList.add('open'); setTimeout(()=>{cartDrawer.classList.remove('open')}, 900); }
+    openCart.addEventListener('click', ()=>{ cartDrawer.classList.add('open'); cartDrawer.setAttribute('aria-hidden','false'); });
+    closeCart.addEventListener('click', ()=>{ cartDrawer.classList.remove('open'); cartDrawer.setAttribute('aria-hidden','true'); });
+    checkoutBtn.addEventListener('click', ()=>{
+      alert('This is a demo store. Integrate a payment gateway for real checkout.');
+    });
+    searchInput.addEventListener('input', (e)=>{
+      const q = e.target.value.trim().toLowerCase();
+      const filtered = state.products.filter(p=> p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) );
+      renderProducts(filtered);
+    });
+
+    // Admin Add Product
+    document.getElementById('adminForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const newProd = {
+        id: Date.now(),
+        title: document.getElementById('adminTitle').value,
+        price: Number(document.getElementById('adminPrice').value),
+        category: document.getElementById('adminCategory').value,
+        img: document.getElementById('adminImg').value,
+        desc: document.getElementById('adminDesc').value,
+      };
+      state.products.push(newProd);
+      renderProducts(state.products);
+      renderAdminProductList(state.products);
+      this.reset();
+      alert('Product added for this session! (Not saved permanently)');
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+    loadCart(); renderProducts(state.products); renderCart(); renderAdminProductList(state.products);
+
+    window.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){
+        if(modalBackdrop.classList.contains('open')) closeModal();
+        else if(cartDrawer.classList.contains('open')){ cartDrawer.classList.remove('open'); cartDrawer.setAttribute('aria-hidden','true'); }
+      }
+    });
+  </script>
+</body>
+</html>
